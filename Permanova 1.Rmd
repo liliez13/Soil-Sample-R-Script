@@ -1,0 +1,98 @@
+---
+title: "Permanovas by soil type"
+output: html_document
+date: "2024-07-23"
+---
+Load Packages
+```{r}
+library(mgcv)
+library(nlme)
+library(permute)
+library(lattice)
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(ecole)
+
+
+set.seed(13)
+```
+
+Load in Data
+```{r}
+ASV <- read.csv("~/ASVtable_rhizosbulk_forR_noCorM.csv", header=TRUE) 
+metadata <- read.csv("~/Lily_Rhizo_Metadata_modified.csv")
+```
+
+```{r}
+ASV <- t(ASV) %>% as.data.frame()
+
+merged_data <- ASV %>% 
+  inner_join(metadata, by = "Sample")
+
+filtered_data <- merged_data %>%
+  filter(Depth == "Bulk")
+
+filtered_asv_table <- filtered_data %>%
+  select(-Depth, -Grassland, -Site, -Date, -Year, -ph, -SiteDepth, -Depth2)
+
+filtered_asv_table <- filtered_asv_table %>% column_to_rownames("Sample")
+
+bulk_dis <- avgdist(filtered_asv_table,sample=4000, dmethod = "bray")
+
+metadata2 <- read.csv("~/Lily_Rhizo_Metadata_bulkonly.csv")
+
+perm_bulk <-adonis2(bulk_dis~as.factor(metadata2$Site), data=metadata2, permutations=9999)
+perm_bulk #Viewing data
+
+bulk_pvalue_table <- permanova_pairwise(bulk_dis, metadata2$Site, permutations=9999 ,padj = "bonferroni")
+bulk_pvalue_table
+```
+```{r}
+ASV <- t(ASV) %>% as.data.frame()
+
+merged_data <- ASV %>% 
+  inner_join(metadata, by = "Sample")
+
+filtered_data_p <- merged_data %>%
+  filter(Depth == "Proximal")
+
+filtered_asv_table_p <- filtered_data_p %>%
+  select(-Depth, -Grassland, -Site, -Date, -Year, -ph, -SiteDepth, -Depth2)
+
+filtered_asv_table_p <- filtered_asv_table_p %>% column_to_rownames("Sample")
+
+prox_dis <- avgdist(filtered_asv_table_p,sample=4000, dmethod = "bray")
+
+metadata3 <- read.csv("~/Lily_Rhizo_Metadata_proxonly.csv")
+
+perm_prox <-adonis2(prox_dis~as.factor(metadata3$Site), data=metadata3, permutations=9999)
+perm_prox #Viewing data
+
+prox_pvalue_table <- permanova_pairwise(prox_dis, metadata3$Site, permutations=9999 ,padj = "bonferroni")
+prox_pvalue_table
+```
+```{r}
+merged_data <- ASV %>% 
+  inner_join(metadata, by = "Sample")
+
+filtered_data_r <- merged_data %>%
+  filter(Depth == "Rhizosphere")
+
+filtered_asv_table_r <- filtered_data_r %>%
+  select(-Depth, -Grassland, -Site, -Date, -Year, -ph, -SiteDepth, -Depth2)
+
+filtered_asv_table_r <- filtered_asv_table_r %>% column_to_rownames("Sample")
+
+rhizo_dis <- avgdist(filtered_asv_table_r,sample=4000, dmethod = "bray")
+
+metadata4 <- read.csv("~/Lily_Rhizo_Metadata_rhizoonly.csv")
+
+perm_rhizo <-adonis2(prox_dis~as.factor(metadata4$Site), data=metadata4, permutations=9999)
+perm_rhizo #Viewing data
+
+rhizo_pvalue_table <- permanova_pairwise(rhizo_dis, metadata4$Site, permutations=9999 ,padj = "bonferroni")
+rhizo_pvalue_table
+```

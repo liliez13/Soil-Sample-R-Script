@@ -1,0 +1,58 @@
+---
+title: "pH Permanova"
+output: html_document
+date: "2024-05-12"
+---
+Load Packages
+```{r}
+library(permute)
+library(lattice)
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+
+
+set.seed(13)
+```
+
+Load in Data
+```{r}
+ASV_ph <- read.csv("~/ASVtable_rhizosbulk_forR_pH.csv", header=TRUE, row.names=1)
+metadata_ph <- read.csv("~/Lily_Rhizo_Metadata_pH.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+ph_dis <- avgdist(ASV_ph,sample=4110, dmethod = "bray")
+```
+
+```{r}
+perm_ph <-adonis2(ph_dis~as.factor(metadata_ph$PH), data=metadata_ph, permutations=9999)
+perm_ph #Viewing data
+```
+NMDA
+```{r}
+nmds_ph <- metaMDS(ph_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_ph)
+```
+Add in metadata
+```{r}
+metadata_nmds_ph <- inner_join(metadata_ph, nmds_ph)
+plot(metadata_nmds_ph)
+```
+
+```{r}
+metadata_nmds_ph %>% ggplot(aes(x=NMDS1,y=NMDS2, color=PH)) + geom_point(shape = 19, size=3) + stat_ellipse() + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("red", "blue", "yellow"), 
+                     breaks = c("Four", "Five", "Six"), 
+                     labels = c("pH=4-6", "pH=5-6", "pH=6-7")) +
+  labs(title = "Microbial Communities Separated by pH", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```

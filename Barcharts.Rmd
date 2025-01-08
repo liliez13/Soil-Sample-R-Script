@@ -1,0 +1,234 @@
+---
+title: "Kelleher Barplots Rhizo"
+output: html_document
+date: "2024-05-10"
+---
+
+Load Packages
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggtext)
+library(RColorBrewer)
+library(ggplot2)
+```
+
+# Get the relative abundnace file ready :)
+Read in ASV table and metadata and taxonomy
+```{r}
+ASV <- read.csv("~/ASVtable_rhizosbulk_forR_noCorM.csv", header=TRUE) %>%
+  pivot_longer(-Sample, names_to = "ASV", values_to = "count")
+
+metadata <- read.csv("~/Lily_Rhizo_Metadata_modified.csv") %>%
+  select(Sample, Grassland, Depth, Date, Year)
+
+taxonomy <- read_excel("~/ASV_taxonomy_rhizosbulk_noCorM.xlsx")
+```
+Join the files together using the inner_join function
+```{r}
+ASV_rel_abund <- inner_join(metadata, ASV, by="Sample") %>% inner_join(., taxonomy, by="ASV") %>%
+  group_by(Sample) %>% mutate(rel_abund = count/sum(count)) %>%
+  ungroup() %>% select(-count) %>%
+  pivot_longer(c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"),
+               names_to = "Level", values_to = "Taxon") %>%
+  mutate(Depth = factor(Depth, levels=c("Bulk", "Rhizosphere", "Proximal")))
+```
+
+# Phylum Level by soil type
+```{r}
+taxon_rel_abund <- ASV_rel_abund %>%
+  filter(Level=="Phylum") %>% 
+  group_by(Depth, Sample, Taxon) %>%
+  summarize(rel_abund = sum(rel_abund), .groups = "drop") %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund =100*mean(rel_abund), .groups = "drop") %>%
+  mutate(Taxon =str_replace(Taxon,"NA", "Unclassified"), Taxon = str_replace(Taxon, "^(\\S*)$","*\\1*"))
+```
+
+```{r}
+taxon_pool <- taxon_rel_abund %>% group_by(Taxon) %>% summarize(pool=max(mean_rel_abund) < 4, .groups="drop")
+```
+
+```{r}
+inner_join(taxon_rel_abund, taxon_pool, by="Taxon") %>% mutate(Taxon=if_else(pool, "Other", Taxon)) %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund =sum(mean_rel_abund), .groups = "drop") %>%
+ggplot(aes(x=Depth, y=mean_rel_abund, fill=Taxon)) + 
+  geom_col() + 
+  scale_fill_manual(name=NULL, breaks=c("*Acidobacteriota*", "*Actinobacteriota*", "*Bacteroidota*", 
+                                        "*Planctomycetota*", "*Proteobacteria*", 
+                                        "*Verrucomicrobiota*", "Other"),
+                              values=c(brewer.pal(6, "Paired"), "gray")) + 
+  scale_y_continuous(expand=c(0,0)) +
+  labs(x=NULL, y="Mean Relative Abundance (%)") +
+  theme_classic() +
+  theme(legend.text= element_markdown(),
+        legend.key.size = unit(10, "pt"))
+
+ggsave("soil_stacked_bar3.tiff", width=5, height=4)
+```
+# Order level by soil type
+```{r}
+taxon_rel_abund_order <- ASV_rel_abund %>%
+  filter(Level=="Order") %>% 
+  group_by(Depth, Sample, Taxon) %>%
+  summarize(rel_abund = sum(rel_abund), .groups = "drop") %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund =100*mean(rel_abund), .groups = "drop") %>%
+  mutate(Taxon =str_replace(Taxon,"NA", "Unclassified"), Taxon = str_replace(Taxon, "^(\\S*)$","*\\1*"))
+```
+
+```{r}
+taxon_pool_order <- taxon_rel_abund_order %>% group_by(Taxon) %>% summarize(pool=max(mean_rel_abund) < 1.5, .groups="drop")
+```
+
+```{r}
+inner_join(taxon_rel_abund_order, taxon_pool_order, by = "Taxon") %>%
+  mutate(
+    Taxon = if_else(pool, "Other", Taxon),
+    Taxon = factor(
+      Taxon,
+      levels = c(
+        "*Acetobacterales*",
+        "*Acidobacteriales*", "*Burkholderiales*", "*Chitinophagales*", "*Chthoniobacterales*", "*Elsterales*",
+        "*Gemmatales*", "*Isosphaerales*", "*Pedosphaerales*", "*Pirellulales*", "*Planctomycetales*", "*Polyangiales*", "*Pseudomonadales*", "*Tepidisphaerales*",
+        "*Rhizobiales*","*Sphingobacteriales*", "*Vicinamibacterales*", "Subgroup 2", "*Unclassified*", "Other"
+      )
+    )
+  ) %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund = sum(mean_rel_abund), .groups = "drop") %>%
+  ggplot(aes(x = Depth, y = mean_rel_abund, fill = Taxon)) +
+  geom_col() +
+  scale_fill_manual(
+    name = NULL,
+    breaks = c(
+      "*Acetobacterales*",
+      "*Acidobacteriales*", "*Burkholderiales*", "*Chitinophagales*", "*Chthoniobacterales*", "*Elsterales*",
+      "*Gemmatales*", "*Isosphaerales*", "*Pedosphaerales*", "*Pirellulales*", "*Planctomycetales*", "*Polyangiales*", "*Pseudomonadales*", "*Tepidisphaerales*",
+      "*Rhizobiales*","*Sphingobacteriales*", "*Vicinamibacterales*", "Subgroup 2", "*Unclassified*", "Other"
+    ),
+    values = c(brewer.pal(12, "Paired"), "blue", "green", "cornflowerblue", "lightgreen", "yellow", "pink", "black", "gray")
+  ) +
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(x = NULL, y = "Mean Relative Abundance (%)") +
+  theme_classic() +
+  theme(
+    legend.text = element_markdown(),
+    legend.key.size = unit(10, "pt")
+  )
+```
+
+# Pannel Figure
+```{r}
+library(ggplot2)
+library(ggthemes)
+library(ggpubr)
+library(patchwork)
+P1 <- inner_join(taxon_rel_abund, taxon_pool, by = "Taxon") %>%
+  mutate(
+    Taxon = if_else(pool, "Other", Taxon)
+  ) %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund = sum(mean_rel_abund), .groups = "drop") %>%
+  ggplot(aes(x = Depth, y = mean_rel_abund, fill = Taxon)) + 
+  geom_col() + 
+  scale_fill_manual(
+    name = NULL, 
+    breaks = c("*Acidobacteriota*", "*Actinobacteriota*", "*Bacteroidota*", 
+               "*Planctomycetota*", "*Proteobacteria*", 
+               "*Verrucomicrobiota*", "Other"),
+    values = c(brewer.pal(6, "Paired"), "gray")
+  ) + 
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(x = NULL, y = "Mean Relative Abundance (%)") +
+  theme_classic() +
+  theme(
+    legend.text = element_markdown(),
+    legend.key.size = unit(10, "pt")
+  ) +
+  guides(fill = guide_legend(title = NULL))
+
+P2 <- inner_join(taxon_rel_abund_order, taxon_pool_order, by = "Taxon") %>%
+  mutate(
+    Taxon = if_else(pool, "Other", Taxon),
+    Taxon = factor(
+      Taxon,
+      levels = c(
+        "*Acetobacterales*", "*Acidobacteriales*", "*Burkholderiales*", "*Chitinophagales*", "*Chthoniobacterales*", "*Elsterales*",
+        "*Gemmatales*", "*Isosphaerales*", "*Pedosphaerales*", "*Pirellulales*", "*Planctomycetales*", "*Polyangiales*", "*Pseudomonadales*", "*Tepidisphaerales*",
+        "*Rhizobiales*", "*Sphingobacteriales*", "*Vicinamibacterales*", "Subgroup 2", "*Unclassified*", "Other"
+      )
+    )
+  ) %>%
+  group_by(Depth, Taxon) %>%
+  summarize(mean_rel_abund = sum(mean_rel_abund), .groups = "drop") %>%
+  ggplot(aes(x = Depth, y = mean_rel_abund, fill = Taxon)) +
+  geom_col() +
+  scale_fill_manual(
+    name = NULL,
+    breaks = c(
+      "*Acetobacterales*", "*Acidobacteriales*", "*Burkholderiales*", "*Chitinophagales*", "*Chthoniobacterales*", "*Elsterales*",
+      "*Gemmatales*", "*Isosphaerales*", "*Pedosphaerales*", "*Pirellulales*", "*Planctomycetales*", "*Polyangiales*", "*Pseudomonadales*", "*Tepidisphaerales*",
+      "*Rhizobiales*", "*Sphingobacteriales*", "*Vicinamibacterales*", "Subgroup 2", "*Unclassified*", "Other"
+    ),
+    values = c(brewer.pal(12, "Paired"), "blue", "green", "cornflowerblue", "lightgreen", "yellow", "pink", "black", "gray")
+  ) +
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(x = NULL, y = "Mean Relative Abundance (%)") +
+  theme_classic() +
+  theme(
+    legend.text = element_markdown(),
+    legend.key.size = unit(10, "pt")
+  ) +
+  guides(fill = guide_legend(title = NULL))
+
+multi_plot <- ggarrange(P1, P2, 
+                        labels = c("A", "B"), 
+                        ncol = 1, nrow = 2, 
+                        common.legend = FALSE,
+                        font.label = list(size = 25))
+
+multi_plot
+  
+```
+
+
+# Phylum level by grassland
+```{r}
+taxon_rel_abund_grass <- ASV_rel_abund %>%
+  filter(Level=="Phylum") %>% 
+  group_by(Grassland, Sample, Taxon) %>%
+  summarize(rel_abund = sum(rel_abund), .groups = "drop") %>%
+  group_by(Grassland, Taxon) %>%
+  summarize(mean_rel_abund =100*mean(rel_abund), .groups = "drop") %>%
+  mutate(Taxon =str_replace(Taxon,"NA", "Unclassified"), Taxon = str_replace(Taxon, "^(\\S*)$","*\\1*"))
+```
+
+```{r}
+taxon_pool_grass <- taxon_rel_abund_grass %>% group_by(Taxon) %>% summarize(pool=max(mean_rel_abund) < 5, .groups="drop")
+```
+
+```{r}
+inner_join(taxon_rel_abund_grass, taxon_pool_grass, by="Taxon") %>% mutate(Taxon=if_else(pool, "Other", Taxon)) %>%
+  group_by(Grassland, Taxon) %>%
+  summarize(mean_rel_abund =sum(mean_rel_abund), .groups = "drop") %>%
+ggplot(aes(x=Grassland, y=mean_rel_abund, fill=Taxon)) + 
+  geom_col() + 
+  scale_fill_manual(name=NULL, breaks=c("*Acidobacteriota*", "*Actinobacteriota*", "*Planctomycetota*", 
+                                        "*Proteobacteria*", 
+                                        "*Verrucomicrobiota*", "Other"),
+                              values=c(brewer.pal(5, "Paired"), "gray")) + 
+  scale_y_continuous(expand=c(0,0)) +
+  labs(x=NULL, y="Mean Relative Abundance (%)") +
+  theme_classic() +
+  theme(legend.text= element_markdown(),
+        legend.key.size = unit(10, "pt"))
+
+ggsave("soil_stacked_bar3.tiff", width=5, height=4)
+```
+
+
+
+
+

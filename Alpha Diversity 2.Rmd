@@ -1,0 +1,85 @@
+---
+title: "Lily_rhizosbulk_pH_alphadiversity"
+output: html_document
+date: "2024-05-14"
+---
+
+Load Packages
+```{r}
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(glue)
+library(ggtext)
+
+set.seed(13)
+```
+
+# Alpha Diversity Analysis
+```{r}
+ASV_ph <- read.csv("~/ASVtable_rhizosbulk_forR_pH.csv", header=TRUE, row.names=1)
+```
+
+## Species richness
+```{r}
+ASV_rare_rhizobulk_ph <- rarefy(ASV_ph,4000)
+#Create a new ASV file on your computer. You may want to write this link different depending on where you want the file to end up
+write.csv(ASV_rare_rhizobulk_ph,"~/ASV_speciesrichness_rhizobulk_ph.csv", row.names=TRUE)
+#Make a new file using the one just created to have the correct format. 
+#Columns: Sample, Richness, metadata info and save to same location with a new name (add 1 to the end)
+```
+
+## Shannon diversity
+```{r}
+shannon_iteration <- function(){
+    ASV_ph %>%
+    rrarefy(sample=4000) %>%
+    diversity()
+  
+}
+ASV_shannon_rhizobulk_ph <- replicate(100, shannon_iteration())
+#Create a new ASV file on your computer. You may want to write this link different depending on where you want the file to end up
+write.csv(ASV_shannon_rhizobulk_ph,"~/ASV_shannon_rhizobulk_ph.csv", row.names=TRUE)
+#Make a new file using the one just created to have the correct format. 
+#Columns: Sample, Shannon, metadata info and save to same location with a new name (add 1 to the end)
+```
+
+Now test the significance between treatments using the Kuksal-Wallis test since the data is non-parametric
+```{r}
+species_rich_ph <- read.csv("~/ASV_speciesrichness_rhizobulk_pH1.csv")
+shannon_ph <- read.csv("~/ASV_shannon_rhizobulk_pH1.csv")
+```
+
+# Species richness
+```{r}
+kruskal.test(Richness ~ ph, data=species_rich_ph)
+```
+```{r}
+ggplot(species_rich_ph, aes(x=reorder(ph,Richness), y=Richness, fill=ph)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Four","Five","Six"),
+                    labels=c("pH=4-5","pH=5-6","pH=6-7"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+
+# Shannon diversity
+```{r}
+kruskal.test(Shannon ~ ph, data=shannon_ph)
+```
+```{r}
+ggplot(shannon_ph, aes(x=reorder(ph,Shannon), y=Shannon, fill=ph)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                     breaks=c("Four","Five","Six"),
+                    labels=c("pH=4-5","pH=5-6","pH=6-7"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```

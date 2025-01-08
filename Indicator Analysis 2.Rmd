@@ -1,0 +1,115 @@
+---
+title: "Lily_SoilType_By_PH"
+output: html_document
+date: "2024-05-28"
+---
+Load Packages
+```{r}
+library(mgcv)
+library(nlme)
+library(permute)
+library(lattice)
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(ecole)
+
+
+set.seed(13)
+```
+
+Load in Data
+```{r}
+ASV_lowph <- read.csv("~/ASVtable_lowph.csv", header=TRUE, row.names=1)
+ASV_highph <- read.csv("~/ASVtable_highph.csv", header=TRUE, row.names=1)
+metadata_lowPH<- read.csv("~/Lily_Rhizo_Metadata_lowph.csv")
+metadata_highPH<- read.csv("~/Lily_Rhizo_Metadata_highph.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+rhizosbulk_dis_lowph <- avgdist(ASV_lowph,sample=4000, dmethod = "bray")
+rhizosbulk_dis_highph <- avgdist(ASV_highph,sample=4000, dmethod = "bray")
+```
+
+```{r}
+perm_soiltype_lowph <-adonis2(rhizosbulk_dis_lowph~as.factor(metadata_lowPH$Depth), data=metadata_lowPH, permutations=9999)
+perm_soiltype_lowph #Viewing data
+```
+```{r}
+soiltype_pvalue_table_lowph <- permanova_pairwise(rhizosbulk_dis_lowph, metadata_lowPH$Depth, permutations=9999 ,padj = "bonferroni")
+soiltype_pvalue_table_lowph
+```
+
+
+
+```{r}
+perm_soiltype_highph <-adonis2(rhizosbulk_dis_highph~as.factor(metadata_highPH$Depth), data=metadata_highPH, permutations=9999)
+perm_soiltype_highph #Viewing data
+```
+
+```{r}
+soiltype_pvalue_table_highph <- permanova_pairwise(rhizosbulk_dis_highph, metadata_highPH$Depth, permutations=9999 ,padj = "bonferroni")
+soiltype_pvalue_table_highph
+```
+
+#NMDS
+## Low PH
+```{r}
+nmds_lowph <- metaMDS(rhizosbulk_dis_lowph) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_lowph)
+
+stress_value_lowph <- metaMDS(rhizosbulk_dis_lowph)$stress
+stress_value_lowph
+```
+
+```{r}
+metadata_nmds_lowph <- inner_join(metadata_lowPH, nmds_lowph)
+plot(metadata_nmds_lowph)
+```
+
+```{r}
+metadata_nmds_lowph %>% ggplot(aes(x=NMDS2,y=NMDS1, color=Depth)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("violet", "blue", "orange"), 
+                     breaks = c("Bulk", "Proximal", "Rhizosphere"), 
+                     labels = c("Bulk", "Proximal", "Rhizosphere")) +
+  labs(title = "Microbial Communities Separated by Soil type", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+ggsave("All_Samples_SoilType.png", height=4, width=5, device="png") 
+```
+
+## High PH
+```{r}
+nmds_highph <- metaMDS(rhizosbulk_dis_highph) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_highph)
+
+stress_value_highph <- metaMDS(rhizosbulk_dis_highph)$stress
+stress_value_highph
+```
+
+```{r}
+metadata_nmds_highph <- inner_join(metadata_highPH, nmds_highph)
+plot(metadata_nmds_highph)
+```
+
+```{r}
+metadata_nmds_highph %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Depth)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("violet", "blue", "orange"), 
+                     breaks = c("Bulk", "Proximal", "Rhizosphere"), 
+                     labels = c("Bulk", "Proximal", "Rhizosphere")) +
+  labs(title = "Microbial Communities Separated by Soil type", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+ggsave("All_Samples_SoilType.png", height=4, width=5, device="png") 
+```

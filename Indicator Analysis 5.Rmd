@@ -1,0 +1,250 @@
+---
+title: "Low vs High pH indicators"
+output: html_document
+date: "2024-05-30"
+---
+```{r}
+library(permute)
+library(lattice)
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(indicspecies)
+
+set.seed(13)
+```
+
+```{r}
+ASV_highph_a <- read.csv("~/ASVtable_highph_relabund.csv", header=TRUE)
+ASV_highph <- read.csv("~/ASVtable_highph.csv", header=TRUE)
+
+metadata_highph <- read.csv("~/Lily_Rhizo_Metadata_highph.csv")
+
+taxonomy <- read.csv("~/ASV_taxonomy_rhizosbulk_noCorM.csv") %>% rename("ASV" =X)
+```
+
+```{r}
+ASV_meta_highph_a <- inner_join(metadata_highph, ASV_highph_a, by="Sample")
+ASV_meta_highph <- inner_join(metadata_highph, ASV_highph, by="Sample")
+abund <- ASV_meta_highph[,8:ncol(ASV_meta_highph)]
+soiltype <- ASV_meta_highph$Depth
+```
+
+```{r}
+indspecies_bysoiltype <- multipatt(abund, soiltype, control = how(nperm=999),duleg = TRUE)
+summary(indspecies_bysoiltype, alpha=0.01, minstat=0.8)
+```
+## 303/110
+
+```{r}
+ASV_highph_n <- read.csv("~/ASVtable_highph.csv", header=TRUE, row.names=1)
+dist_matrix_highph <- avgdist(ASV_highph_n,sample=4000, dmethod = "bray")
+soil_nmds_highph <- metaMDS(dist_matrix_highph) %>% scores() %>% as_tibble(rownames = "Sample")
+```
+
+```{r}
+bubble_highph <- inner_join(soil_nmds_highph, ASV_meta_highph_a, by="Sample")
+```
+
+```{r}
+ggplot(bubble_highph, aes(x=NMDS1, y=NMDS2, size=ASV_303, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV303, Phylum=*Proteobacteria* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+```{r}
+ggplot(bubble_highph, aes(x=NMDS1, y=NMDS2, size=ASV_110, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV110, Phylum=*Myxococcota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+```{r}
+ggplot(bubble_highph, aes(x=NMDS1, y=NMDS2, size=ASV_138, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV138, Phylum=*Latescibacterota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+
+
+```{r}
+ASV_lowph_a <- read.csv("~/ASVtable_lowph_relabund.csv", header=TRUE)
+ASV_lowph <- read.csv("~/ASVtable_lowph.csv", header=TRUE)
+
+metadata_lowph <- read.csv("~/Lily_Rhizo_Metadata_lowph.csv")
+
+taxonomy <- read.csv("~/ASV_taxonomy_rhizosbulk_noCorM.csv") %>% rename("ASV" =X)
+```
+
+```{r}
+ASV_meta_lowph_a <- inner_join(metadata_lowph, ASV_lowph_a, by="Sample")
+ASV_meta_lowph <- inner_join(metadata_lowph, ASV_lowph, by="Sample")
+abund1 <- ASV_meta_lowph[,8:ncol(ASV_meta_lowph)]
+soiltype1 <- ASV_meta_lowph$Depth
+```
+
+```{r}
+indspecies_bysoiltype1 <- multipatt(abund1, soiltype1, control = how(nperm=999),duleg = TRUE)
+summary(indspecies_bysoiltype1, alpha=0.01, minstat=0.8)
+```
+
+
+```{r}
+ASV_lowph_n <- read.csv("~/ASVtable_lowph.csv", header=TRUE, row.names=1)
+dist_matrix_lowph <- avgdist(ASV_lowph_n,sample=4000, dmethod = "bray")
+soil_nmds_lowph <- metaMDS(dist_matrix_lowph) %>% scores() %>% as_tibble(rownames = "Sample")
+```
+
+```{r}
+bubble_lowph <- inner_join(soil_nmds_lowph, ASV_meta_lowph_a, by="Sample")
+```
+
+```{r}
+ggplot(bubble_lowph, aes(x=NMDS2, y=NMDS1, size=ASV_303, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV303, Phylum=*Proteobacteria* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+## Creating a pannel figure
+```{r}
+install.packages('ggpubr')
+install.packages('patchwork')
+library(ggplot2)
+library(ggthemes)
+library(ggpubr)
+library(patchwork)
+
+stress_value_high <- metaMDS(dist_matrix_highph)$stress
+
+stress_value_low <- metaMDS(dist_matrix_lowph)$stress
+
+p1 <- ggplot(bubble_highph, aes(x=NMDS1, y=NMDS2, size=ASV_138, fill=Depth)) + 
+  geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+  geom_text(aes(x = -0.35, y = 0.45, label = paste("Stress =", round(stress_value_high, 2))), size = 5, color = "black") + 
+  scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                    breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                    labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+  guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+  scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+  labs(title = "Relative abundance of ASV138, Phylum=*Latescibacterota* ", x = "", y = "Dimension 2", 
+       subtitle = "Soil Type Indicactor ASV") +
+  theme_classic() + 
+  theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+p2 <- ggplot(bubble_lowph, aes(x=NMDS2, y=NMDS1, size=ASV_240, fill=Depth)) + 
+  geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75)  +  
+  geom_text(aes(x = -0.23, y = 0.45, label = paste("Stress =", round(stress_value_high, 2))), size = 5, color = "black") +  
+  scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                    breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                    labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+  guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+  scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+  labs(title = "Relative abundance of ASV240, Order=*Subgroup 2 Acidobacteria* ", x = "Dimension 1", y = "Dimension 2", 
+       subtitle = "Soil Type Indicactor ASV") +
+  theme_classic() + 
+  theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+
+multi_plot<- ggarrange(p1,p2, #plots that are going to be included in this multipanel figure
+                       labels = c("A", "B"), #labels given each panel 
+                       ncol = 1, nrow = 2, #adjust plot space 
+                       common.legend = T,  font.label = list(size = 25)
+)
+multi_plot
+```
+
+```{r}
+ASV <- read.csv("~/ASVtable_relabund_forR_noCorM.csv", header=TRUE)
+metadata <- read.csv("~/Lily_Rhizo_Metadata_modified.csv")
+ASV_meta_relabund <- inner_join(metadata, ASV, by="Sample")
+
+ASV_B <- read.csv("~/ASVtable_rhizosbulk_forR_noCorM.csv", header=TRUE, row.names=1)
+dist_matrix <- avgdist(ASV_B,sample=4000, dmethod = "bray")
+soil_nmds <- metaMDS(dist_matrix) %>% scores() %>% as_tibble(rownames = "Sample")
+
+stress_value <- metaMDS(dist_matrix)$stress
+
+bubble <- inner_join(soil_nmds, ASV_meta_relabund, by="Sample")
+
+p3 <- ggplot(bubble, aes(x=NMDS1, y=NMDS2, size=ASV_303, fill=Depth)) + 
+  geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+  geom_text(aes(x = -0.4, y = 0.45, label = paste("Stress =", round(stress_value_high, 2))), size = 5, color = "black") + 
+  scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                    breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                    labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+  guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+  scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+  labs(title = "Relative abundance of ASV303, Genus=*Luteibacter* ", x = "", y = "Dimension 2", 
+       subtitle = "Soil Type Indicactor ASV") +
+  theme_classic() + 
+  theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+
+p4 <- ggplot(bubble_highph, aes(x=NMDS1, y=NMDS2, size=ASV_303, fill=Depth)) + 
+  geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+  geom_text(aes(x = -0.35, y = 0.45, label = paste("Stress =", round(stress_value_high, 2))), size = 5, color = "black") + 
+  scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                    breaks = c("Bulk", "Proximal", "Rhizosphere")) + 
+  guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+  scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+  labs(title = "", x = "", y = "Dimension 2", 
+       subtitle = "") +
+  theme_classic() + 
+  theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+
+p5 <- ggplot(bubble_lowph, aes(x=NMDS2, y=NMDS1, size=ASV_303, fill=Depth)) + 
+  geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75)  +  
+  geom_text(aes(x = -0.23, y = 0.53, label = paste("Stress =", round(stress_value_high, 2))), size = 5, color = "black") +  
+  scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                    breaks = c("Bulk", "Proximal", "Rhizosphere")) + 
+  guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+  scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+  labs(title = "", x = "Dimension 1", y = "Dimension 2", 
+       subtitle = "") +
+  theme_classic() + 
+  theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+
+multi_plot1<- ggarrange(p3,p4,p5, #plots that are going to be included in this multipanel figure
+                        labels = c("A", "B", "C"), #labels given each panel 
+                        ncol = 1, nrow = 3, #adjust plot space 
+                        common.legend = TRUE,  font.label = list(size = 25))
+multi_plot1
+```
+

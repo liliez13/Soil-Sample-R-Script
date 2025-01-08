@@ -1,0 +1,241 @@
+---
+title: "Kelleher Rhizo Alpha Diversity"
+output: html_document
+date: "2024-05-10"
+---
+
+Load Packages
+```{r}
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+
+set.seed(13)
+```
+
+# Alpha Diversity Analysis
+```{r}
+ASV <- read.csv("~/ASVtable_rhizosbulk_forR_noCorM.csv", header=TRUE, row.names=1)
+```
+
+## Species richness
+```{r}
+ASV_rare_rhizobulk <- rarefy(ASV,4000)
+#Create a new ASV file on your computer. You may want to write this link different depending on where you want the file to end up
+write.csv(ASV_rare_rhizobulk,"~/ASV_speciesrichness_rhizobulk.csv", row.names=TRUE)
+#Make a new file using the one just created to have the correct format. 
+#Columns: Sample, Richness, metadata info and save to same location with a new name (add 1 to the end)
+```
+
+## Shannon diversity
+```{r}
+shannon_iteration <- function(){
+    ASV %>%
+    rrarefy(sample=2859) %>%
+    diversity()
+  
+}
+ASV_shannon_rhizobulk <- replicate(100, shannon_iteration())
+#Create a new ASV file on your computer. You may want to write this link different depending on where you want the file to end up
+write.csv(ASV_shannon_rhizobulk,"~/ASV_shannon_rhizobulk.csv", row.names=TRUE)
+#Make a new file using the one just created to have the correct format. 
+#Columns: Sample, Shannon, metadata info and save to same location with a new name (add 1 to the end)
+```
+
+Now test the significance between treatments using the Kuksal-Wallis test since the data is non-parametric
+```{r}
+species_rich <- read.csv("~/ASV_speciesrichness_rhizobulk1.csv")
+shannon <- read.csv("~/ASV_shannon_rhizobulk1.csv")
+```
+
+## Species richness
+### Soil type
+```{r}
+kruskal.test(Richness ~ Depth, data=species_rich)
+```
+### Grassland
+```{r}
+kruskal.test(Richness ~ Grassland, data=species_rich)
+```
+
+### Month
+```{r}
+kruskal.test(Richness ~ Date, data=species_rich)
+```
+### Site
+```{r}
+kruskal.test(Richness ~ Site, data=species_rich)
+```
+
+### Year
+```{r}
+kruskal.test(Richness ~ Year, data=species_rich)
+```
+## Shannon Diversity
+### Soil Type
+```{r}
+kruskal.test(Shannon ~ Depth, data=shannon)
+```
+### Grassland
+```{r}
+kruskal.test(Shannon ~ Grassland, data=shannon)
+```
+
+### Month
+```{r}
+kruskal.test(Shannon ~ Date, data=shannon)
+```
+### Site 
+```{r}
+kruskal.test(Shannon ~ Site, data=shannon)
+```
+
+### Year
+```{r}
+kruskal.test(Shannon ~ Year, data=shannon)
+```
+# Box and Jitter Plots
+Load packages
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(glue)
+library(ggtext)
+
+set.seed(13)
+```
+
+## Soil Type
+### Species Richness
+```{r}
+ggplot(species_rich, aes(x=reorder(Depth,Richness), y=Richness, fill=Depth)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Bulk","Proximal","Rhizosphere"),
+                    labels=c("Bulk","Proximal","Rhizosphere"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+### Shannon Diversity
+```{r}
+ggplot(shannon, aes(x=reorder(Depth,Shannon), y=Shannon, fill=Depth)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                     breaks=c("Bulk","Proximal","Rhizosphere"),
+                    labels=c("Bulk","Proximal","Rhizosphere"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+
+## Grassland
+### Species Richness
+```{r}
+ggplot(species_rich, aes(x=reorder(Grassland,Richness), y=Richness, fill=Grassland)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Nesco","Ricketts"),
+                    labels=c("Nescopeck","Ricketts"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+### Shannon Diversity
+```{r}
+ggplot(shannon, aes(x=reorder(Grassland,Shannon), y=Shannon, fill=Grassland)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                     breaks=c("Nesco","Ricketts"),
+                    labels=c("Nescopeck","Ricketts"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+
+## Month
+### Species Richness
+```{r}
+ggplot(species_rich, aes(x=reorder(Date,Richness), y=Richness, fill=Date)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("June","August"),
+                    labels=c("June","August"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+### Shannon Diversity
+```{r}
+ggplot(shannon, aes(x=reorder(Date,Shannon), y=Shannon, fill=Date)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                     breaks=c("June","August"),
+                    labels=c("June","August"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+
+
+## Site
+### Species Richness
+```{r}
+ggplot(species_rich, aes(x=reorder(Site,Richness), y=Richness, fill=Site)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Site 1","Site 2","Site 3"),
+                    labels=c("Ricketts Site 1","Ricketts Site 2","Nescopeck"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+### Shannon Diversity
+```{r}
+ggplot(shannon, aes(x=reorder(Site,Shannon), y=Shannon, fill=Site)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                     breaks=c("Site 1","Site 2","Site 3"),
+                    labels=c("Ricketts Site 1","Ricketts Site 2","Nescopeck"),
+                    values=c("pink", "blue", "darkgreen")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+
+## Year
+### Species Richness
+```{r}
+ggplot(species_rich, aes(x=reorder(Year,Richness), y=Richness, fill=Year)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Species Richness",x=NULL, y="Species Richness") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Year1","Year2"),
+                    labels=c("2021", "2022"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```
+### Shannon Diversity
+```{r}
+ggplot(shannon, aes(x=reorder(Year,Shannon), y=Shannon, fill=Year)) + 
+  geom_boxplot(show.legend = FALSE, outlier.shape=NA, alpha=0.25, width=0.6, coef=0) +
+  geom_jitter(show.legend = FALSE, width = 0.25, shape=21, size=2, color="black") +
+  labs(title="Shannon Index",x=NULL, y="Shannon Diversity Index") + 
+  scale_fill_manual(name=NULL, 
+                    breaks=c("Year1","Year2"),
+                    labels=c("2021", "2022"),
+                    values=c("pink", "blue")) +
+  theme_classic()+theme(plot.title = element_text(hjust=0.5))
+```

@@ -1,0 +1,415 @@
+---
+title: "Kelleher Rhizo Permanova"
+output: html_document
+date: "2024-05-09"
+---
+Load Packages
+```{r}
+library(mgcv)
+library(nlme)
+library(permute)
+library(lattice)
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(ecole)
+
+
+set.seed(13)
+```
+
+Load in Data
+```{r}
+ASV <- read.csv("~/ASVtable_rhizosbulk_forR_noCorM.csv", header=TRUE, row.names=1)
+metadata <- read.csv("~/Lily_Rhizo_Metadata_modified.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+rhizosbulk_dis <- avgdist(ASV,sample=4000, dmethod = "bray")
+```
+
+## Run Permanovas
+### Grassland
+```{r}
+perm_grassland <-adonis2(rhizosbulk_dis~as.factor(metadata$Grassland), data=metadata, permutations=9999)
+perm_grassland #Viewing data
+```
+### Soil Type
+```{r}
+perm_soiltype <-adonis2(rhizosbulk_dis~as.factor(metadata$Depth), data=metadata, permutations=9999)
+perm_soiltype #Viewing data
+```
+Pairwise!
+```{r}
+soiltype_pvalue_table <- permanova_pairwise(rhizosbulk_dis, metadata$Depth, permutations=9999 ,padj = "bonferroni")
+soiltype_pvalue_table
+```
+
+### Month
+```{r}
+perm_month <-adonis2(rhizosbulk_dis~as.factor(metadata$Date), data=metadata, permutations=9999)
+perm_month #Viewing data
+```
+
+### Year
+```{r}
+perm_year <-adonis2(rhizosbulk_dis~as.factor(metadata$Year), data=metadata, permutations=9999)
+perm_year #Viewing data
+```
+### Site
+```{r}
+perm_site <-adonis2(rhizosbulk_dis~as.factor(metadata$Site), data=metadata, permutations=9999)
+perm_site #Viewing data
+```
+Pairwise!
+```{r}
+site_pvalue_table <- permanova_pairwise(rhizosbulk_dis, metadata$Site, permutations=9999 ,padj = "bonferroni")
+site_pvalue_table
+```
+### pH
+```{r}
+perm_ph <-adonis2(rhizosbulk_dis~as.factor(metadata$ph), data=metadata, permutations=9999)
+perm_ph #Viewing data
+```
+```{r}
+ph_pvalue_table <- permanova_pairwise(rhizosbulk_dis, metadata$ph, permutations=9999 ,padj = "bonferroni")
+ph_pvalue_table
+```
+
+## NMDS
+```{r}
+nmds <- metaMDS(rhizosbulk_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds)
+
+stress_value <- metaMDS(rhizosbulk_dis)$stress
+stress_value
+
+```
+Add in metadata
+```{r}
+metadata_nmds <- inner_join(metadata, nmds)
+plot(metadata_nmds)
+```
+
+### Grassland
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Grassland)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkgreen", "blue"), 
+                     breaks = c("Nesco", "Ricketts"), 
+                     labels = c("Nescopeck", "Ricketts")) +
+  labs(title = "Microbial Communities Separated by Grassland", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+### PH
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=ph)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("red", "blue"), 
+                     breaks = c("Four", "Five"), 
+                     labels = c("pH below 5", "pH 5 and above")) +
+  labs(title = "Microbial Communities Separated by pH", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+
+### Soil Type
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Depth)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("violet", "blue", "orange"), 
+                     breaks = c("Bulk", "Rhizosphere", "Proximal"), 
+                     labels = c("Bulk", "Rhizosphere", "Proximal")) +
+  labs(title = "Microbial Communities Separated by Soil type", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+ggsave("All_Samples_SoilType.png", height=4, width=5, device="png") 
+```
+
+### Month
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Date)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkblue", "red"), 
+                     breaks = c("August", "June"), 
+                     labels = c("August", "June")) +
+  labs(title = "Microbial Communities Separated by Month", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+### Year
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Year)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("red", "blue"), 
+                     breaks = c("Year1", "Year2"), 
+                     labels = c("2021", "2022")) +
+  labs(title = "Microbial Communities Separated by Year", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+### Site
+```{r}
+metadata_nmds %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Site)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkgreen", "blue", "purple"), 
+                     breaks = c("Site 1", "Site 2", "Site 3"), 
+                     labels = c("Ricketts Site 1", "Ricketts Ste 2", "Nescopeck")) +
+  labs(title = "Microbial Communities Separated by Grassland Site", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+## Does Grassland matter by soil type??
+### Bulk
+Load in Data
+```{r}
+ASV_bulk <- read.csv("~/ASVtable_rhizosbulk_forR_bulk.csv", header=TRUE, row.names=1)
+metadata_bulk <- read.csv("~/Lily_Rhizo_Metadata_bulk.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+bulk_dis <- avgdist(ASV_bulk,sample=4110, dmethod = "bray")
+```
+
+Grassland
+```{r}
+perm_soiltype_bulk <-adonis2(bulk_dis~as.factor(metadata_bulk$Grassland), data=metadata_bulk, permutations=9999)
+perm_soiltype_bulk #Viewing data
+```
+NMDS
+```{r}
+nmds_bulk <- metaMDS(bulk_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_bulk)
+```
+Add in metadata
+```{r}
+metadata_nmds_bulk <- inner_join(metadata_bulk, nmds_bulk)
+plot(metadata_nmds_bulk)
+```
+```{r}
+metadata_nmds_bulk %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Grassland)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkgreen", "blue"), 
+                     breaks = c("Nesco", "Ricketts"), 
+                     labels = c("Nescopeck", "Ricketts")) +
+  labs(title = "Bulk Soil Microbial Communities Separated by Grassland", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+### Proximal
+Load in Data
+```{r}
+ASV_proximal <- read.csv("~/ASVtable_rhizosbulk_forR_proximal.csv", header=TRUE, row.names=1)
+metadata_proximal <- read.csv("~/Lily_Rhizo_Metadata_proximal.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+proximal_dis <- avgdist(ASV_proximal,sample=4400, dmethod = "bray")
+```
+
+Grassland
+```{r}
+perm_soiltype_proximal <-adonis2(proximal_dis~as.factor(metadata_proximal$Grassland), data=metadata_proximal, permutations=9999)
+perm_soiltype_proximal #Viewing data
+```
+NMDS
+```{r}
+nmds_proximal <- metaMDS(proximal_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_proximal)
+```
+Add in metadata
+```{r}
+metadata_nmds_proximal <- inner_join(metadata_proximal, nmds_proximal)
+plot(metadata_nmds_proximal)
+```
+```{r}
+metadata_nmds_proximal %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Grassland)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkgreen", "blue"), 
+                     breaks = c("Nesco", "Ricketts"), 
+                     labels = c("Nescopeck", "Ricketts")) +
+  labs(title = "Proximal Soil Microbial Communities Separated by Grassland", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+### Rhizosphere
+Load in Data
+```{r}
+ASV_rhizo <- read.csv("~/ASVtable_rhizosbulk_forR_rhizo.csv", header=TRUE, row.names=1)
+metadata_rhizo <- read.csv("~/Lily_Rhizo_Metadata_rhizo.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+rhizo_dis <- avgdist(ASV_rhizo,sample=4200, dmethod = "bray")
+```
+
+Grassland
+```{r}
+perm_soiltype_rhizo <-adonis2(rhizo_dis~as.factor(metadata_rhizo$Grassland), data=metadata_rhizo, permutations=9999)
+perm_soiltype_rhizo #Viewing data
+```
+NMDS
+```{r}
+nmds_rhizo <- metaMDS(rhizo_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_rhizo)
+```
+Add in metadata
+```{r}
+metadata_nmds_rhizo <- inner_join(metadata_rhizo, nmds_rhizo)
+```
+```{r}
+metadata_nmds_bulk %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Grassland)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("darkgreen", "blue"), 
+                     breaks = c("Nesco", "Ricketts"), 
+                     labels = c("Nescopeck", "Ricketts")) +
+  labs(title = "Rhizosphere Soil Microbial Communities Separated by Grassland", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+## Does soil type matter for each grasland??
+### Ricketts
+Load in Data
+```{r}
+ASV_ricketts <- read.csv("~/ASVtable_rhizosbulk_forR_Ricketts.csv", header=TRUE, row.names=1)
+metadata_ricketts <- read.csv("~/Lily_Rhizo_Metadata_Ricketts.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+ricketts_dis <- avgdist(ASV_ricketts,sample=4110, dmethod = "bray")
+```
+
+Soil Type
+```{r}
+perm_soiltype_ricketts <-adonis2(ricketts_dis~as.factor(metadata_ricketts$Depth), data=metadata_ricketts, permutations=9999)
+perm_soiltype_ricketts #Viewing data
+```
+Pairwise!
+```{r}
+soiltypericketts_pvalue_table <- permanova_pairwise(ricketts_dis, metadata_ricketts$Depth, permutations=9999 ,padj = "bonferroni")
+soiltypericketts_pvalue_table
+```
+
+
+NMDS
+```{r}
+nmds_ricketts <- metaMDS(ricketts_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_ricketts)
+
+stress_value_rick <- metaMDS(ricketts_dis)$stress
+stress_value_rick
+```
+Add in metadata
+```{r}
+metadata_nmds_ricketts <- inner_join(metadata_ricketts, nmds_ricketts)
+plot(metadata_nmds_ricketts)
+```
+
+```{r}
+metadata_nmds_ricketts %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Depth)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("violet", "blue", "orange"), 
+                     breaks = c("Bulk", "Proximal", "Rhizosphere"), 
+                     labels = c("Bulk", "Proximal", "Rhizosphere")) +
+  labs(title = "Microbial Communities In Ricketts Separated by Soil type", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```
+
+### Nesco
+Load in Data
+```{r}
+ASV_Nesco <- read.csv("~/ASVtable_rhizosbulk_forR_Nesco.csv", header=TRUE, row.names=1)
+metadata_Nesco <- read.csv("~/Lily_Rhizo_Metadata_Nesco.csv")
+```
+
+Create a dissimilarity matrix
+```{r}
+nesco_dis <- avgdist(ASV_Nesco,sample=5730, dmethod = "bray")
+```
+
+Soil Type
+```{r}
+perm_soiltype_nesco <-adonis2(nesco_dis~as.factor(metadata_Nesco$Depth), data=metadata_Nesco, permutations=9999)
+perm_soiltype_nesco #Viewing data
+```
+Pairwise!
+```{r}
+soiltypenesco_pvalue_table <- permanova_pairwise(nesco_dis, metadata_Nesco$Depth, permutations=9999 ,padj = "bonferroni")
+soiltypenesco_pvalue_table
+```
+
+
+NMDS
+```{r}
+nmds_nesco <- metaMDS(nesco_dis) %>% scores() %>% as_tibble(rownames = "Sample")
+plot(nmds_nesco)
+
+
+stress_value_nesco <- metaMDS(nesco_dis)$stress
+stress_value_nesco
+```
+Add in metadata
+```{r}
+metadata_nmds_nesco <- inner_join(metadata_Nesco, nmds_nesco)
+plot(metadata_nmds_nesco)
+```
+
+```{r}
+metadata_nmds_nesco %>% ggplot(aes(x=NMDS1,y=NMDS2, color=Depth)) + geom_point(shape = 19, size=3) + 
+  coord_fixed() + 
+  scale_color_manual(name=NULL, 
+                     values = c("violet", "blue", "orange"), 
+                     breaks = c("Bulk", "Proximal", "Rhizosphere"), 
+                     labels = c("Bulk", "Proximal", "Rhizosphere")) +
+  labs(title = "Microbial Communities In Nescopeck Separated by Soil type", x = "Dimension 1", y = "Dimension 2") + 
+  theme_classic() + theme(plot.title = element_text(size=15), plot.title.position = "plot", legend.key.size = unit(20,"pt"),
+                          legend.text= element_text(size=16),
+                          axis.title.y = element_text(size=20), axis.title.x = element_text(size=20),
+                          axis.text.x = element_text(size=16), axis.text.y = element_text(size=16), legend.position = "top")
+```

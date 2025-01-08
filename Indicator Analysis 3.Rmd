@@ -1,0 +1,316 @@
+---
+title: "Lily Grassland Indicators"
+output: html_document
+date: "2024-05-21"
+---
+Load Packages
+```{r}
+library(vegan)
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(RColorBrewer)
+library(indicspecies)
+
+set.seed(13)
+```
+
+
+## Ricketts indicators
+```{r}
+ASV_ricketts <- read.csv("~/ASVtable_rhizosbulk_forR_Ricketts.csv", header=TRUE) %>% rename("Sample" =X)
+
+metadata_ricketts <- read.csv("~/Lily_Rhizo_Metadata_Ricketts.csv")
+
+taxonomy <- read.csv("~/ASV_taxonomy_rhizosbulk_noCorM.csv") %>% rename("ASV" =X)
+```
+
+```{r}
+
+ASV_rick_relabund <- inner_join(metadata_ricketts, ASV_ricketts, by="Sample")
+
+abund <- ASV_rick_relabund[,8:ncol(ASV_rick_relabund)]
+grass <- ASV_rick_relabund$Grassland
+site <- ASV_rick_relabund$Site
+soiltype <- ASV_rick_relabund$Depth
+date <- ASV_rick_relabund$Date
+year <- ASV_rick_relabund$Year
+ph <- ASV_rick_relabund$ph
+```
+
+```{r}
+indspecies_bysoiltype_rick <- multipatt(abund, soiltype, control = how(nperm=999),duleg = TRUE)
+summary(indspecies_bysoiltype_rick, alpha=0.01, minstat=0.8)
+```
+
+Indicators by soil type: 
+
+Rhizosphere: ASV54
+
+Bulk: ASV147, ASV396, ASV371 and ASV74
+
+### Preparing bubble plot
+```{r}
+ASV_rickb <- read.csv("~/ASVtable_rhizosbulk_forR_Ricketts.csv", header=TRUE, row.names=1)
+dist_matrix_rick <- avgdist(ASV_rickb,sample=4000, dmethod = "bray")
+soil_nmds_rick <- metaMDS(dist_matrix_rick) %>% scores() %>% as_tibble(rownames = "Sample")
+```
+
+```{r}
+bubble_rick <- inner_join(soil_nmds_rick, ASV_rick_relabund, by="Sample")
+```
+
+#### ASV54
+```{r}
+ggplot(bubble_rick, aes(x=NMDS1, y=NMDS2, size=ASV_54, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV54, Order=*Rickettsiales* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV147
+```{r}
+ggplot(bubble_rick, aes(x=NMDS1, y=NMDS2, size=ASV_147, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV147, Phylum=*Acidobacteriota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV396
+```{r}
+ggplot(bubble_rick, aes(x=NMDS1, y=NMDS2, size=ASV_396, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV396, Phlyum=*Planctomycetota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV371
+```{r}
+ggplot(bubble_rick, aes(x=NMDS1, y=NMDS2, size=ASV_371, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV371, Order=*Rhizobiales* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV74
+```{r}
+ggplot(bubble_rick, aes(x=NMDS1, y=NMDS2, size=ASV_74, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV74, Phylum=*Planctomycetota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+
+## Nescopeck indicators
+```{r}
+ASV_nesco <- read.csv("~/ASVtable_rhizosbulk_forR_Nesco.csv", header=TRUE) %>% rename("Sample" =X)
+
+metadata_nesco <- read.csv("~/Lily_Rhizo_Metadata_Nesco.csv")
+
+taxonomy <- read.csv("~/ASV_taxonomy_rhizosbulk_noCorM.csv") %>% rename("ASV" =X)
+```
+
+```{r}
+
+ASV_nesco_relabund <- inner_join(metadata_nesco, ASV_nesco, by="Sample")
+
+abund1 <- ASV_nesco_relabund[,8:ncol(ASV_nesco_relabund)]
+grass1 <- ASV_nesco_relabund$Grassland
+site1 <- ASV_nesco_relabund$Site
+soiltype1 <- ASV_nesco_relabund$Depth
+date1 <- ASV_nesco_relabund$Date
+year1 <- ASV_nesco_relabund$Year
+ph1 <- ASV_nesco_relabund$ph
+```
+
+```{r}
+indspecies_bysoiltype_nesco <- multipatt(abund1, soiltype1, control = how(nperm=999),duleg = TRUE)
+summary(indspecies_bysoiltype_nesco, alpha=0.01, minstat=0.8)
+```
+
+Indicators by soil type: 
+
+Rhizosphere: 110, 54, 39, 116
+
+Bulk: 138, 457, 315, 1485
+
+### Preparing bubble plot
+```{r}
+ASV_nescob <- read.csv("~/ASVtable_rhizosbulk_forR_Nesco.csv", header=TRUE, row.names=1)
+dist_matrix_nesco <- avgdist(ASV_nescob,sample=4000, dmethod = "bray")
+soil_nmds_nesco <- metaMDS(dist_matrix_nesco) %>% scores() %>% as_tibble(rownames = "Sample")
+```
+
+```{r}
+bubble_nesco <- inner_join(soil_nmds_nesco, ASV_nesco_relabund, by="Sample")
+```
+
+#### ASV110
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_110, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV110, Phylum=*Myxococcota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV54
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_54, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV54, Order=*Rickettsiales* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV39
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_39, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV39, Phylum=*Proteobacteria* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV116
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_116, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV116, Phylum=*Proteobacteria* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV138
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_138, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV138, Phylum=*Latescibacterota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV457
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_457, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV457, Phylum=*Actinobacteriota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV315
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_315, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV315, Phylum=*Acidobacteriota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+#### ASV1485
+```{r}
+ggplot(bubble_nesco, aes(x=NMDS2, y=NMDS1, size=ASV_1485, fill=Depth)) + 
+    geom_point(alpha=0.7, shape=21, color="black", stroke = 0.75) +  
+    scale_fill_manual(name=NULL, values = c("violet","blue","orange"), 
+                      breaks = c("Bulk", "Proximal", "Rhizosphere"),
+                      labels = c("Bulk", "Proximal", "Rhizosphere")) + 
+    guides(fill = guide_legend(override.aes = list(size = 6, alpha=1))) + 
+    scale_size(range = c(1, 15), name="Relative Abundance (%)") +
+    labs(title = "Relative abundance of ASV1485, Phylum=*Actinobacteriota* ", x = "Dimension 1", y = "Dimension 2", 
+         subtitle = "Soil Type Indicactor ASV") +
+    theme_classic() + 
+    theme(legend.text= element_text(size=10),
+        legend.key.size = unit(15, "pt"))
+```
+
+
